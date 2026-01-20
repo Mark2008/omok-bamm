@@ -1,19 +1,17 @@
 use super::board::{Board, Stone, Move, Player};
 
 pub trait Rule {
-    fn is_valid(&self, board: &Board, mv: Move, player: Player) -> bool;
+    fn is_valid(board: &Board, mv: Move, player: Player) -> bool;
 
-    fn is_winning(&self, board: &Board, mv: Move, player: Player) -> bool;
-}
+    fn is_winning(board: &Board, mv: Move, player: Player) -> bool;
 
-impl dyn Rule {
-    fn check(&self, board: &Board, mv: Move, player: Player) -> CheckResult {
-        let valid: bool = self.is_valid(board, mv, player);
+    fn check(board: &Board, mv: Move, player: Player) -> CheckResult {
+        let valid: bool = Self::is_valid(board, mv, player);
         if !valid {
             return CheckResult::Invalid;
         }
 
-        let winning = self.is_winning(board, mv, player);
+        let winning = Self::is_winning(board, mv, player);
         if winning {
             return CheckResult::Win(player)
         }
@@ -24,13 +22,13 @@ impl dyn Rule {
     }
 
     fn put(
-        &self, board: &mut Board, mv: Move, player: Player
+        board: &mut Board, mv: Move, player: Player
     ) -> Result<PutOutcome, PutError> {
         if board.get(mv) != Stone::None {
             return Err(PutError::Occupied);
         }
 
-        let check = self.check(board, mv, player);
+        let check = Self::check(board, mv, player);
         match check {
             CheckResult::Invalid => Err(PutError::Occupied),
             CheckResult::LooksGood => {
