@@ -65,4 +65,18 @@ impl Move {
         }
         Some(Self { x, y })
     }
+
+    pub fn shift(&self, dx: i32, dy: i32) -> Option<Self> {
+        let x = self.x as i32 - dx;
+        let y = self.y as i32 - dy;
+        if x < 0 || y < 0 || x >= 15 || y >= 15 {
+            return None;
+        }
+        Some(
+            Self {
+                x: x as usize, 
+                y: y as usize
+            }
+        )
+    }
 }
