@@ -89,7 +89,7 @@ enum OpenType {
 /// (Omok Rule)
 /// disallawed 3-3, allowed 4-4
 /// jangmok is not winning
-struct OmokRule;
+pub struct OmokRule;
 
 impl OmokRule {
     fn count_one_side(  // helper function

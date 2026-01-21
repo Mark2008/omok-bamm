@@ -13,8 +13,8 @@ pub type Player = Turn;
 
 pub struct Board {
     v: [[Stone; 15]; 15],
-    turn: Turn,
-    ply: u32,
+    pub turn: Turn,
+    pub ply: u32,
 }
 
 #[derive(Debug, Copy, Clone)]
