@@ -1,12 +1,13 @@
+use std::thread::{self, JoinHandle};
+use std::sync::mpsc;
 use eframe::egui;
 use crate::core::board;
-use crate::core::rule;
-
-type GameRule = rule::OmokRule;
+use crate::core::rule::{self, Rule};
+use crate::bot::model::{Model, RandomBaboModel};
 
 #[derive(PartialEq, Debug, Clone, Copy)] // Added Clone, Copy for later reset example
 enum AppMode {
-    Game, About,
+    PvpGame, BotGame, About,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -14,22 +15,41 @@ enum GameStatus {
     Ongoing, Ended,
 }
 
-pub struct MyApp {
-    current_mode: AppMode,
+struct GameData {
     board: board::Board,
     game_status: GameStatus,
+    rule: Box<dyn Rule>,
+}
+
+pub struct MyApp {
+    current_mode: AppMode,
+    pvp_data: GameData,
+    bot_data: GameData,
+    bot_context: Option<BotContext>,
+}
+
+impl GameData {
+    fn new() -> Self {
+        Self {
+            board: board::Board::blank(),
+            game_status: GameStatus::Ongoing,
+            rule: Box::new(rule::OmokRule),
+        }
+    }
 }
 
 // Manually implement the Default trait for MyApp
 impl Default for MyApp {
     fn default() -> Self {
         Self {
-            current_mode: AppMode::Game, // Start in View mode by default
-            board: board::Board::blank(),
-            game_status: GameStatus::Ongoing,
+            current_mode: AppMode::BotGame, // Start in View mode by default
+            pvp_data: GameData::new(),
+            bot_data: GameData::new(),
+            bot_context: None,
         }
     }
 }
+
 // Replace the previous impl eframe::App for MyApp block with this enhanced version
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -39,7 +59,8 @@ impl eframe::App for MyApp {
             ui.horizontal(|ui| {
                 ui.label("Menu:");
                 // Use radio buttons to switch the app mode state (we'll use self.current_mode)
-                ui.radio_value(&mut self.current_mode, AppMode::Game, "Game");
+                ui.radio_value(&mut self.current_mode, AppMode::PvpGame, "PvP");
+                ui.radio_value(&mut self.current_mode, AppMode::BotGame, "Bot");
                 ui.radio_value(&mut self.current_mode, AppMode::About, "About");
             });
         });
@@ -51,90 +72,12 @@ impl eframe::App for MyApp {
 
             // `match` allows us to render different UI based on the current mode
             match self.current_mode {
-                AppMode::Game => {
-                    let mut text = format!("Turn: {:?}", self.board.turn);
-                    if self.game_status == GameStatus::Ended {
-                        text = format!("{:?} wins.", self.board.turn.next());
-                    }
-                    ui.label(text);
+                AppMode::PvpGame => {
+                    omok_template(&mut self.pvp_data, ui, self.current_mode, &mut self.bot_context);
+                }
 
-                    let (resp, painter) =
-                        ui.allocate_painter(egui::Vec2::splat(360.0), egui::Sense::click());
-
-                    let rect = resp.rect;
-                    let cell = rect.width() / 15.0;
-
-                    // input handling
-                    if resp.clicked() && self.game_status == GameStatus::Ongoing {
-                        if let Some(pos) = resp.interact_pointer_pos() {
-                            let local = (pos - resp.rect.min)
-                                .clamp(eframe::emath::Vec2::ZERO, rect.size());
-                            let coord = (local / cell).floor();
-
-                            if let Some(mv) = board::Move::new(coord.x as usize, coord.y as usize) {
-                                let player = self.board.turn;
-                                let put = <GameRule as rule::Rule>::put(
-                                    &mut self.board, mv, player,
-                                );
-                                match put {
-                                    Ok(rule::PutOutcome::Continue) => {
-                                        println!("successfully put {:?}", coord);
-                                    },
-                                    Ok(rule::PutOutcome::Win(p)) => {
-                                        println!("{:?} wins!", p);
-                                        self.game_status = GameStatus::Ended;
-                                    },
-                                    Ok(rule::PutOutcome::Draw) => {
-                                        println!("Draw!");
-                                        self.game_status = GameStatus::Ended;
-                                    },
-                                    Err(rule::PutError::Occupied) => {
-                                        println!("This position is already occupied");
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // drawing grid
-                    for i in 0..15 {
-                        let x = rect.left() + cell * (i as f32 + 0.5);
-                        painter.line_segment(
-                            [
-                                egui::pos2(x, rect.top()),
-                                egui::pos2(x, rect.bottom()),
-                            ],
-                            egui::Stroke::new(1.0, egui::Color32::GRAY),
-                        );
-                        let y = rect.top() + cell * (i as f32 + 0.5);
-                        painter.line_segment(
-                            [
-                                egui::pos2(rect.left(), y),
-                                egui::pos2(rect.right(), y),
-                            ], 
-                            egui::Stroke::new(1.0, egui::Color32::GRAY),
-                        );
-                    }
-
-                    // drawing stones
-                    for i in 0..15 {
-                        for j in 0..15 {
-                            let mv = board::Move::new(i, j).unwrap();
-                            let stone = self.board.get(mv);
-                            if stone != board::Stone::None {
-                                let x = rect.left() + cell * (i as f32 + 0.5);
-                                let y = rect.top() + cell * (j as f32 + 0.5);
-                                let fill_color = match stone {
-                                    board::Stone::Black => egui::Color32::BLACK,
-                                    board::Stone::White => egui::Color32::WHITE,
-                                    board::Stone::None => unreachable!(),
-                                };
-                                let center = egui::Pos2::new(x, y);
-                                painter.circle(center, 10.0, fill_color, egui::Stroke::new(2.0, egui::Color32::DARK_GRAY));
-                                // painter.circle_filled(center, 8.0, fill_color);
-                            }
-                        }
-                    }
+                AppMode::BotGame => {
+                    omok_template(&mut self.bot_data, ui, self.current_mode, &mut self.bot_context);
                 }
 
                 AppMode::About => {
@@ -143,5 +86,143 @@ impl eframe::App for MyApp {
                 }
             }
         });
+    }
+}
+
+struct BotContext {
+    handle: JoinHandle<()>,
+    rx: mpsc::Receiver<Option<board::Move>>,
+}
+
+fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, bot_context: &mut Option<BotContext>) {
+    let mut text = format!("Turn: {:?}", data.board.turn);
+    if data.game_status == GameStatus::Ended {
+        text = format!("{:?} wins.", data.board.turn.next());
+    }
+    ui.label(text);
+
+    let (resp, painter) =
+        ui.allocate_painter(egui::Vec2::splat(360.0), egui::Sense::click());
+
+    let rect = resp.rect;
+    let cell = rect.width() / 15.0;
+
+    // input handling
+    if current_mode == AppMode::PvpGame || (current_mode == AppMode::BotGame && bot_context.is_none()) {
+        if resp.clicked() && data.game_status == GameStatus::Ongoing {
+            if let Some(pos) = resp.interact_pointer_pos() {
+                let local = (pos - resp.rect.min)
+                    .clamp(eframe::emath::Vec2::ZERO, rect.size());
+                let coord = (local / cell).floor();
+
+                if let Some(mv) = board::Move::new(coord.x as usize, coord.y as usize) {
+                    let player = data.board.turn;
+                    let put = data.rule.put(
+                        &mut data.board, mv, player,
+                    );
+                    match put {
+                        Ok(rule::PutOutcome::Continue) => {
+                            println!("successfully put {:?}", coord);
+                            let new_board = data.board.clone();
+                            if current_mode == AppMode::BotGame {
+                                let (tx, rx) = mpsc::channel();
+                                
+                                let handle = thread::spawn(move || {
+                                    let model = RandomBaboModel;
+                                    let selection = model.next_move(&new_board, mv);
+                                    tx.send(selection).unwrap();
+                                });
+
+                                *bot_context = Some(BotContext {
+                                    handle: handle,
+                                    rx: rx
+                                });
+                            }
+                        },
+                        Ok(rule::PutOutcome::Win(p)) => {
+                            println!("{:?} wins!", p);
+                            data.game_status = GameStatus::Ended;
+                        },
+                        Ok(rule::PutOutcome::Draw) => {
+                            println!("Draw!");
+                            data.game_status = GameStatus::Ended;
+                        },
+                        Err(rule::PutError::Occupied) => {
+                            println!("This position is already occupied");
+                        }
+                    }
+                }
+            }
+        }
+    } else {    // when bot running
+        if let Some(ctx) = bot_context.as_mut() {
+            if let Ok(received) = ctx.rx.try_recv() {
+                if let Some(mv) = received {
+                    let put = data.rule.put(&mut data.board, mv, board::Turn::White);
+                    match put {
+                        Ok(rule::PutOutcome::Continue) => {
+                            println!("successfully put {:?}", mv);
+                            *bot_context = None;
+                        },
+                        Ok(rule::PutOutcome::Win(p)) => {
+                            println!("{:?} wins!", p);
+                            data.game_status = GameStatus::Ended;
+                        },
+                        Ok(rule::PutOutcome::Draw) => {
+                            println!("Draw!");
+                            data.game_status = GameStatus::Ended;
+                        },
+                        Err(rule::PutError::Occupied) => {
+                            println!("aaaaaaaaaa This position is already occupied");
+                        }
+                    }
+                } else {
+                    println!("bot resigned!!");
+                    data.game_status = GameStatus::Ended;
+                }
+
+            }
+        }
+    }
+    
+
+    // drawing grid
+    for i in 0..15 {
+        let x = rect.left() + cell * (i as f32 + 0.5);
+        painter.line_segment(
+            [
+                egui::pos2(x, rect.top()),
+                egui::pos2(x, rect.bottom()),
+            ],
+            egui::Stroke::new(1.0, egui::Color32::GRAY),
+        );
+        let y = rect.top() + cell * (i as f32 + 0.5);
+        painter.line_segment(
+            [
+                egui::pos2(rect.left(), y),
+                egui::pos2(rect.right(), y),
+            ], 
+            egui::Stroke::new(1.0, egui::Color32::GRAY),
+        );
+    }
+
+    // drawing stones
+    for i in 0..15 {
+        for j in 0..15 {
+            let mv = board::Move::new(i, j).unwrap();
+            let stone = data.board.get(mv);
+            if stone != board::Stone::None {
+                let x = rect.left() + cell * (i as f32 + 0.5);
+                let y = rect.top() + cell * (j as f32 + 0.5);
+                let fill_color = match stone {
+                    board::Stone::Black => egui::Color32::BLACK,
+                    board::Stone::White => egui::Color32::WHITE,
+                    board::Stone::None => unreachable!(),
+                };
+                let center = egui::Pos2::new(x, y);
+                painter.circle(center, 10.0, fill_color, egui::Stroke::new(2.0, egui::Color32::DARK_GRAY));
+                // painter.circle_filled(center, 8.0, fill_color);
+            }
+        }
     }
 }

@@ -1,17 +1,17 @@
 use super::board::{Board, Stone, Move, Player};
 
 pub trait Rule {
-    fn is_valid(board: &Board, mv: Move, player: Player) -> bool;
+    fn is_valid(&self, board: &Board, mv: Move, player: Player) -> bool;
 
-    fn is_winning(board: &Board, mv: Move, player: Player) -> bool;
-
-    fn check(board: &Board, mv: Move, player: Player) -> CheckResult {
-        let valid: bool = Self::is_valid(board, mv, player);
+    fn is_winning(&self, board: &Board, mv: Move, player: Player) -> bool;
+    
+    fn check(&self, board: &Board, mv: Move, player: Player) -> CheckResult {
+        let valid: bool = self.is_valid(board, mv, player);
         if !valid {
             return CheckResult::Invalid;
         }
 
-        let winning = Self::is_winning(board, mv, player);
+        let winning = self.is_winning(board, mv, player);
         if winning {
             return CheckResult::Win(player)
         }
@@ -22,13 +22,13 @@ pub trait Rule {
     }
 
     fn put(
-        board: &mut Board, mv: Move, player: Player
+        &self, board: &mut Board, mv: Move, player: Player
     ) -> Result<PutOutcome, PutError> {
         if board.get(mv) != Stone::None {
             return Err(PutError::Occupied);
         }
 
-        let check = Self::check(board, mv, player);
+        let check = self.check(board, mv, player);
         match check {
             CheckResult::Invalid => Err(PutError::Occupied),
             result => {
@@ -89,6 +89,7 @@ enum OpenType {
 /// (Omok Rule)
 /// disallawed 3-3, allowed 4-4
 /// jangmok is not winning
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct OmokRule;
 
 impl OmokRule {
@@ -139,7 +140,7 @@ impl OmokRule {
 }
 
 impl Rule for OmokRule {
-    fn is_valid(board: &Board, mv: Move, player: Player) -> bool {
+    fn is_valid(&self, board: &Board, mv: Move, player: Player) -> bool {
         // 3-3 deteciton
         let mut already_sam = false;
         for (dx, dy) in DIRECTION.map(|x| x.delta()) {
@@ -156,7 +157,7 @@ impl Rule for OmokRule {
         true
     }
 
-    fn is_winning(board: &Board, mv: Move, player: Player) -> bool {
+    fn is_winning(&self, board: &Board, mv: Move, player: Player) -> bool {
         for (dx, dy) in DIRECTION.map(|x| x.delta()) {
             let (cnt, _) = Self::line_count(board, mv, player, dx, dy);
             if cnt == 5 {

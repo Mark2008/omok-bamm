@@ -11,6 +11,7 @@ pub enum Turn {
 
 pub type Player = Turn;
 
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Board {
     v: [[Stone; 15]; 15],
     pub turn: Turn,
