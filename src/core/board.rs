@@ -51,10 +51,18 @@ impl Board {
         self.v[mv.y][mv.x]
     }
 
-    pub fn put_force(&mut self, mv: Move, stone: Stone) {
+    pub(super) fn put_force(&mut self, mv: Move, stone: Stone) {
         self.turn = self.turn.next();
         self.ply += 1;
         self.v[mv.y][mv.x] = stone;
+    }
+
+    pub fn put(&mut self, mv: Move, stone: Stone) -> bool {
+        if self.get(mv) == Stone::None {
+            return false
+        }
+        self.put_force(mv, stone);
+        true
     }
 }
 
