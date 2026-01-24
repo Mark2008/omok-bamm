@@ -45,12 +45,59 @@ impl Model for RandomBaboModel {
     }
 }
 
-// struct MinimaxModel {
-//     depth: u32,
-// }
+struct NegamaxModel {
+    depth: u32,
+}
 
-// impl Model for MinimaxModel {
-//     fn next_move(&self, board: &Board, mv: Move) -> Move {
-        
-//     }
-// }
+impl NegamaxModel {
+    fn possible_moves(&self, board: &Board, mv: Move) -> Vec<Move> {
+        let _ = mv; // unused
+        let mut v = Vec::new();
+        for i in 0..15 {
+            for j in 0..15 {
+                let mv = Move::new(j, i).unwrap();
+                if board.get(mv) == Stone::None {
+                    v.push(mv);
+                }
+            }
+        }
+        v
+    }
+
+    fn negamax(&self, board: &Board, mv: Move, d: u32) -> (f32, Move) {
+        if d == 0 {
+            // return heuristic value
+        }
+        let possible = self.possible_moves(board, mv);
+
+        if possible.is_empty() {
+            // terminal node.
+            // return somethingdgsadaggdsgsda i dont know
+        }
+
+        let mut max_mv = possible.first().unwrap().clone();
+        let mut max = f32::NEG_INFINITY;
+
+        for mv in possible {
+            let stone = board.turn.next().to_stone();
+            let temp_board = board.with_move(mv, stone).unwrap();   // trust self.possible_moves
+            
+            let (eval, _) = self.negamax(&temp_board, mv, d - 1);
+            let eval = -eval;
+            
+            if max < eval {
+                max = eval;
+                max_mv = mv;
+            }
+        }
+
+        (max, max_mv)
+    }
+}
+
+impl Model for NegamaxModel {
+    fn next_move(&self, board: &Board, mv: Move) -> Option<Move> {
+        let (eval, result_mv) = self.negamax(board, mv, self.depth);
+        Some(result_mv)
+    }
+}
