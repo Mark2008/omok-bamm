@@ -6,6 +6,7 @@ use crate::core::rule::{self, Rule};
 use crate::bot::{
     eval::{self, Eval},
     model::{self, Model},
+    prune::{self, NoPrune},
 };
 
 #[derive(PartialEq, Debug, Clone, Copy)] // Added Clone, Copy for later reset example
@@ -137,6 +138,7 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                                         eval: Box::new(eval::BaboEval {
                                             rule: rule
                                         }),
+                                        prune: Box::new(prune::NoPrune),
                                     };
                                     let selection = model.next_move(&new_board, mv);
                                     tx.send(selection).unwrap();

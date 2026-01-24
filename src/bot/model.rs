@@ -3,6 +3,7 @@ use core::f32;
 use rand::Rng;
 use crate::core::board::{Board, Move, Stone};
 use super::eval::Eval;
+use super::prune::Prune;
 
 pub trait Model: Send + Sync {
     /// if None, the bot resigns (?)
@@ -10,6 +11,12 @@ pub trait Model: Send + Sync {
 }
 
 pub struct RandomBaboModel;
+
+pub struct NegamaxModel {
+    pub depth: u32,
+    pub eval: Box<dyn Eval>,
+    pub prune: Box<dyn Prune>,
+}
 
 impl Model for RandomBaboModel {
     fn next_move(&self, board: &Board, mv: Move) -> Option<Move> {        
@@ -48,32 +55,13 @@ impl Model for RandomBaboModel {
     }
 }
 
-pub struct NegamaxModel {
-    pub depth: u32,
-    pub eval: Box<dyn Eval>,
-}
-
 impl NegamaxModel {
-    fn possible_moves(&self, board: &Board, mv: Move) -> Vec<Move> {
-        let _ = mv; // unused
-        let mut v = Vec::new();
-        for i in 0..15 {
-            for j in 0..15 {
-                let mv = Move::new(j, i).unwrap();
-                if board.get(mv) == Stone::None {
-                    v.push(mv);
-                }
-            }
-        }
-        v
-    }
-
     fn negamax(&self, board: &Board, mv: Move, d: u32) -> f32 {
         if d == 0 {
             let eval = self.eval.eval(board, mv, board.turn());
             return eval;
         }
-        let possible = self.possible_moves(board, mv);
+        let possible = self.prune.possible(board, mv);
 
         if possible.is_empty() {
             let eval = self.eval.eval(board, mv, board.turn());
@@ -102,7 +90,7 @@ impl Model for NegamaxModel {
         let mut best = f32::NEG_INFINITY;
         let mut best_mv = None;
 
-        for mv in self.possible_moves(board, mv) {
+        for mv in self.prune.possible(board, mv) {
             let stone = board.turn().next().to_stone();
             // println!("{:?}, {:?}", mv, stone);
             let next_board = board.with_move(mv, stone).unwrap();   // possible_moves guarantee not None
