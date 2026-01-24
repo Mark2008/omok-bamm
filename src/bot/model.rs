@@ -1,5 +1,8 @@
+use core::f32;
+
 use rand::Rng;
 use crate::core::board::{Board, Move, Stone};
+use super::eval::Eval;
 
 pub trait Model {
     /// if None, the bot resigns (?)
@@ -47,6 +50,7 @@ impl Model for RandomBaboModel {
 
 struct NegamaxModel {
     depth: u32,
+    eval: Box<dyn Eval>,
 }
 
 impl NegamaxModel {
@@ -64,40 +68,51 @@ impl NegamaxModel {
         v
     }
 
-    fn negamax(&self, board: &Board, mv: Move, d: u32) -> (f32, Move) {
+    fn negamax(&self, board: &Board, mv: Move, d: u32) -> f32 {
         if d == 0 {
-            // return heuristic value
+            let eval = self.eval.eval(board, mv, board.turn());
+            return eval;
         }
         let possible = self.possible_moves(board, mv);
 
         if possible.is_empty() {
-            // terminal node.
-            // return somethingdgsadaggdsgsda i dont know
+            let eval = self.eval.eval(board, mv, board.turn());
+            return eval;
         }
 
-        let mut max_mv = possible.first().unwrap().clone();
         let mut max = f32::NEG_INFINITY;
 
         for mv in possible {
             let stone = board.turn().next().to_stone();
             let temp_board = board.with_move(mv, stone).unwrap();   // trust self.possible_moves
             
-            let (eval, _) = self.negamax(&temp_board, mv, d - 1);
-            let eval = -eval;
+            let eval = -self.negamax(&temp_board, mv, d - 1);
             
             if max < eval {
                 max = eval;
-                max_mv = mv;
             }
         }
 
-        (max, max_mv)
+        max
     }
 }
 
 impl Model for NegamaxModel {
     fn next_move(&self, board: &Board, mv: Move) -> Option<Move> {
-        let (eval, result_mv) = self.negamax(board, mv, self.depth);
-        Some(result_mv)
+        let mut best = f32::NEG_INFINITY;
+        let mut best_mv = None;
+
+        for mv in self.possible_moves(board, mv) {
+            let stone = board.turn().next().to_stone();
+            let next_board = board.with_move(mv, stone).unwrap();   // possible_moves guarantee not None
+
+            let eval = -self.negamax(&next_board, mv, self.depth - 1);
+            if eval > best {
+                best = eval;
+                best_mv = Some(mv);
+            }
+        }
+
+        best_mv
     }
 }
