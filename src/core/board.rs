@@ -52,7 +52,7 @@ impl Board {
         self.v[mv.y][mv.x]
     }
 
-    pub(super) fn put_force(&mut self, mv: Move, stone: Stone) {
+    pub(super) fn put_unchecked(&mut self, mv: Move, stone: Stone) {
         self.turn = self.turn.next();
         self.ply += 1;
         self.v[mv.y][mv.x] = stone;
@@ -62,8 +62,22 @@ impl Board {
         if self.get(mv) == Stone::None {
             return false
         }
-        self.put_force(mv, stone);
+        self.put_unchecked(mv, stone);
         true
+    }
+
+    pub(super) fn with_move_unchecked(&self, mv: Move, stone: Stone) -> Self {
+        let mut new = self.clone();
+        new.put_unchecked(mv, stone);
+        new
+    }
+
+    pub fn with_move(&self, mv: Move, stone: Stone) -> Option<Self> {
+        let mut new = self.clone();
+        if new.put(mv, stone) {
+            return Some(new);
+        }
+        None
     }
 }
 

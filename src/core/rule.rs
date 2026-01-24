@@ -32,7 +32,7 @@ pub trait Rule {
         match check {
             CheckResult::Invalid => Err(PutError::Occupied),
             result => {
-                board.put_force(mv, player.to_stone());
+                board.put_unchecked(mv, player.to_stone());
                 Ok(match result {
                     CheckResult::LooksGood => PutOutcome::Continue,
                     CheckResult::Win(p) => PutOutcome::Win(p),
