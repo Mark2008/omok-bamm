@@ -95,9 +95,9 @@ struct BotContext {
 }
 
 fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, bot_context: &mut Option<BotContext>) {
-    let mut text = format!("Turn: {:?}", data.board.turn);
+    let mut text = format!("Turn: {:?}", data.board.turn());
     if data.game_status == GameStatus::Ended {
-        text = format!("{:?} wins.", data.board.turn.next());
+        text = format!("{:?} wins.", data.board.turn().next());
     }
     ui.label(text);
 
@@ -116,7 +116,7 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                 let coord = (local / cell).floor();
 
                 if let Some(mv) = board::Move::new(coord.x as usize, coord.y as usize) {
-                    let player = data.board.turn;
+                    let player = data.board.turn();
                     let put = data.rule.put(
                         &mut data.board, mv, player,
                     );

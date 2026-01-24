@@ -14,8 +14,8 @@ pub type Player = Turn;
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Board {
     v: [[Stone; 15]; 15],
-    pub turn: Turn,
-    pub ply: u32,
+    turn: Turn,
+    ply: u32,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -78,6 +78,14 @@ impl Board {
             return Some(new);
         }
         None
+    }
+
+    pub fn turn(&self) -> Turn {
+        self.turn
+    }
+
+    pub fn ply(&self) -> u32 {
+        self.ply
     }
 }
 

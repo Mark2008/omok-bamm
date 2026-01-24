@@ -79,7 +79,7 @@ impl NegamaxModel {
         let mut max = f32::NEG_INFINITY;
 
         for mv in possible {
-            let stone = board.turn.next().to_stone();
+            let stone = board.turn().next().to_stone();
             let temp_board = board.with_move(mv, stone).unwrap();   // trust self.possible_moves
             
             let (eval, _) = self.negamax(&temp_board, mv, d - 1);
