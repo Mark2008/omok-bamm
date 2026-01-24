@@ -59,7 +59,7 @@ impl Board {
     }
 
     pub fn put(&mut self, mv: Move, stone: Stone) -> bool {
-        if self.get(mv) == Stone::None {
+        if self.get(mv) != Stone::None {
             return false
         }
         self.put_unchecked(mv, stone);

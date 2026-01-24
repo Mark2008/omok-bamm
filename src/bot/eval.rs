@@ -1,14 +1,15 @@
+use std::sync::Arc;
 use crate::core::{
     board::{Board, Player, Move},
     rule::Rule,
 };
 
-pub trait Eval {
+pub trait Eval: Send + Sync {
     fn eval(&self, board: &Board, mv: Move, player: Player) -> f32;
 }
 
-struct BaboEval {
-    rule: Box<dyn Rule>,
+pub struct BaboEval {
+    pub rule: Arc<dyn Rule>,
 }
 
 impl Eval for BaboEval {

@@ -1,9 +1,12 @@
 use std::thread::{self, JoinHandle};
-use std::sync::mpsc;
+use std::sync::{Arc, mpsc};
 use eframe::egui;
 use crate::core::board;
 use crate::core::rule::{self, Rule};
-use crate::bot::model::{Model, RandomBaboModel};
+use crate::bot::{
+    eval::{self, Eval},
+    model::{self, Model},
+};
 
 #[derive(PartialEq, Debug, Clone, Copy)] // Added Clone, Copy for later reset example
 enum AppMode {
@@ -18,7 +21,7 @@ enum GameStatus {
 struct GameData {
     board: board::Board,
     game_status: GameStatus,
-    rule: Box<dyn Rule>,
+    rule: Arc<dyn Rule>,
 }
 
 pub struct MyApp {
@@ -33,7 +36,7 @@ impl GameData {
         Self {
             board: board::Board::blank(),
             game_status: GameStatus::Ongoing,
-            rule: Box::new(rule::OmokRule),
+            rule: Arc::new(rule::OmokRule),
         }
     }
 }
@@ -124,11 +127,17 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                         Ok(rule::PutOutcome::Continue) => {
                             println!("successfully put {:?}", coord);
                             let new_board = data.board.clone();
+                            let rule = data.rule.clone();
                             if current_mode == AppMode::BotGame {
                                 let (tx, rx) = mpsc::channel();
                                 
                                 let handle = thread::spawn(move || {
-                                    let model = RandomBaboModel;
+                                    let model = model::NegamaxModel {
+                                        depth: 3,
+                                        eval: Box::new(eval::BaboEval {
+                                            rule: rule
+                                        }),
+                                    };
                                     let selection = model.next_move(&new_board, mv);
                                     tx.send(selection).unwrap();
                                 });

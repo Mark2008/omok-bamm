@@ -4,7 +4,7 @@ use rand::Rng;
 use crate::core::board::{Board, Move, Stone};
 use super::eval::Eval;
 
-pub trait Model {
+pub trait Model: Send + Sync {
     /// if None, the bot resigns (?)
     fn next_move(&self, board: &Board, mv: Move) -> Option<Move>;
 }
@@ -48,9 +48,9 @@ impl Model for RandomBaboModel {
     }
 }
 
-struct NegamaxModel {
-    depth: u32,
-    eval: Box<dyn Eval>,
+pub struct NegamaxModel {
+    pub depth: u32,
+    pub eval: Box<dyn Eval>,
 }
 
 impl NegamaxModel {
@@ -104,6 +104,7 @@ impl Model for NegamaxModel {
 
         for mv in self.possible_moves(board, mv) {
             let stone = board.turn().next().to_stone();
+            // println!("{:?}, {:?}", mv, stone);
             let next_board = board.with_move(mv, stone).unwrap();   // possible_moves guarantee not None
 
             let eval = -self.negamax(&next_board, mv, self.depth - 1);

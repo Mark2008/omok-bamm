@@ -1,6 +1,6 @@
 use super::board::{Board, Stone, Move, Player};
 
-pub trait Rule {
+pub trait Rule: Send + Sync {
     fn is_valid(&self, board: &Board, mv: Move, player: Player) -> bool;
 
     fn is_winning(&self, board: &Board, mv: Move, player: Player) -> bool;
