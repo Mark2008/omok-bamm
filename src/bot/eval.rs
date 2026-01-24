@@ -1,24 +1,24 @@
 use crate::core::{
     board::{Board, Player, Move},
-    rule::{OmokRule, Rule},
+    rule::Rule,
 };
 
 pub trait Eval {
     fn eval(&self, board: &Board, mv: Move, player: Player) -> f32;
 }
 
-struct BaboEval;
+struct BaboEval {
+    rule: Box<dyn Rule>,
+}
 
 impl Eval for BaboEval {
     fn eval(&self, board: &Board, mv: Move, player: Player) -> f32 {
-        let rule = OmokRule{};
-
-        let winning_player = rule.is_winning(board, mv, player);
+        let winning_player = self.rule.is_winning(board, mv, player);
         if winning_player {
             return 1000.0;
         }
 
-        let winning_opponent = rule.is_winning(board, mv, player.next());
+        let winning_opponent = self.rule.is_winning(board, mv, player.next());
         if winning_opponent {
             return -1000.0;
         }
