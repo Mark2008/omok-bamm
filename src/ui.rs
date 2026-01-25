@@ -4,7 +4,7 @@ use eframe::egui;
 use crate::core::board;
 use crate::core::rule::{self, Rule};
 use crate::bot::{
-    eval::{self, Eval},
+    eval,
     model::{self, Model},
     prune,
 };
