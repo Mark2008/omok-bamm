@@ -1,5 +1,6 @@
 use rand::Rng;
 use crate::core::board::{Board, Move, Stone};
+use crate::core::rule::{Rule};
 use super::eval::Eval;
 use super::prune::Prune;
 
@@ -16,6 +17,7 @@ pub struct NegamaxModel {
     pub depth: u32,
     pub eval: Box<dyn Eval>,
     pub prune: Box<dyn Prune>,
+    pub rule: Box<dyn Rule>,
 }
 
 impl Model for RandomBaboModel {
@@ -56,17 +58,27 @@ impl Model for RandomBaboModel {
 }
 
 impl NegamaxModel {
-    #[tracing::instrument(skip(self, board), ret)]
+    // #[tracing::instrument(skip(self, board), ret)]
     fn negamax(&self, board: &Board, mv: Move, d: u32) -> f32 {
         if d == 0 {
-            let eval = self.eval.eval(board, mv, board.turn());
+            // terminal node
+            let eval = self.eval.eval(board, mv, board.turn().next());
             return eval;
         }
         let possible = self.prune.possible(board, mv);
 
         if possible.is_empty() {
-            let eval = self.eval.eval(board, mv, board.turn());
+            // terminal node
+            let eval = self.eval.eval(board, mv, board.turn().next());
             return eval;
+        }
+        let winning_self = self.rule.is_winning(board, mv, board.turn());
+        if winning_self {
+            return -10000.0;
+        }
+        let winning_opponent = self.rule.is_winning(board, mv, board.turn().next());
+        if winning_opponent {
+            return 10000.0;
         }
 
         let mut max = core::f32::NEG_INFINITY;

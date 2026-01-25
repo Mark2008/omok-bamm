@@ -129,20 +129,25 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                             tracing::debug!("successfully put {:?}", coord);
                             let new_board = data.board.clone();
                             let rule = data.rule.clone();
+                            // legend spagetti code warning!!!!!!!!!!!!!!!!!!!!!!!
+                            // todo: fix to reference
+
                             if current_mode == AppMode::BotGame {
                                 let (tx, rx) = mpsc::channel();
                                 
                                 let handle = thread::spawn(move || {
                                     let model = model::NegamaxModel {
-                                        depth: 5,
+                                        depth: 4,
                                         eval: Box::new(eval::BaboEval {
                                             rule: rule
                                         }),
                                         prune: Box::new(prune::NeighborPrune),
+                                        rule: Box::new(rule::OmokRule),
                                     };
                                     let selection = model.next_move(&new_board, mv);
                                     tx.send(selection).unwrap();
                                 });
+                                // might be end of the spagetti
 
                                 *bot_context = Some(BotContext {
                                     handle: handle,
