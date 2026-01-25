@@ -1,6 +1,7 @@
+use std::fmt::Debug;
 use super::board::{Board, Stone, Move, Player};
 
-pub trait Rule: Send + Sync {
+pub trait Rule: Debug + Send + Sync {
     fn is_valid(&self, board: &Board, mv: Move, player: Player) -> bool;
 
     fn is_winning(&self, board: &Board, mv: Move, player: Player) -> bool;

@@ -6,7 +6,7 @@ use crate::core::rule::{self, Rule};
 use crate::bot::{
     eval::{self, Eval},
     model::{self, Model},
-    prune::{self, NoPrune},
+    prune,
 };
 
 #[derive(PartialEq, Debug, Clone, Copy)] // Added Clone, Copy for later reset example
@@ -126,7 +126,7 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                     );
                     match put {
                         Ok(rule::PutOutcome::Continue) => {
-                            println!("successfully put {:?}", coord);
+                            tracing::debug!("successfully put {:?}", coord);
                             let new_board = data.board.clone();
                             let rule = data.rule.clone();
                             if current_mode == AppMode::BotGame {
@@ -134,11 +134,11 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                                 
                                 let handle = thread::spawn(move || {
                                     let model = model::NegamaxModel {
-                                        depth: 3,
+                                        depth: 5,
                                         eval: Box::new(eval::BaboEval {
                                             rule: rule
                                         }),
-                                        prune: Box::new(prune::NoPrune),
+                                        prune: Box::new(prune::NeighborPrune),
                                     };
                                     let selection = model.next_move(&new_board, mv);
                                     tx.send(selection).unwrap();
@@ -151,15 +151,15 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                             }
                         },
                         Ok(rule::PutOutcome::Win(p)) => {
-                            println!("{:?} wins!", p);
+                            tracing::debug!("{:?} wins!", p);
                             data.game_status = GameStatus::Ended;
                         },
                         Ok(rule::PutOutcome::Draw) => {
-                            println!("Draw!");
+                            tracing::debug!("Draw!");
                             data.game_status = GameStatus::Ended;
                         },
                         Err(rule::PutError::Occupied) => {
-                            println!("This position is already occupied");
+                            tracing::debug!("This position is already occupied");
                         }
                     }
                 }
@@ -172,23 +172,23 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                     let put = data.rule.put(&mut data.board, mv, board::Turn::White);
                     match put {
                         Ok(rule::PutOutcome::Continue) => {
-                            println!("successfully put {:?}", mv);
+                            tracing::debug!("successfully put {:?}", mv);
                             *bot_context = None;
                         },
                         Ok(rule::PutOutcome::Win(p)) => {
-                            println!("{:?} wins!", p);
+                            tracing::debug!("{:?} wins!", p);
                             data.game_status = GameStatus::Ended;
                         },
                         Ok(rule::PutOutcome::Draw) => {
-                            println!("Draw!");
+                            tracing::debug!("Draw!");
                             data.game_status = GameStatus::Ended;
                         },
                         Err(rule::PutError::Occupied) => {
-                            println!("aaaaaaaaaa This position is already occupied");
+                            tracing::debug!("aaaaaaaaaa This position is already occupied");
                         }
                     }
                 } else {
-                    println!("bot resigned!!");
+                    tracing::debug!("bot resigned!!");
                     data.game_status = GameStatus::Ended;
                 }
 

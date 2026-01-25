@@ -1,5 +1,3 @@
-use core::f32;
-
 use rand::Rng;
 use crate::core::board::{Board, Move, Stone};
 use super::eval::Eval;
@@ -10,8 +8,10 @@ pub trait Model: Send + Sync {
     fn next_move(&self, board: &Board, mv: Move) -> Option<Move>;
 }
 
+#[derive(Debug)]
 pub struct RandomBaboModel;
 
+#[derive(Debug)]
 pub struct NegamaxModel {
     pub depth: u32,
     pub eval: Box<dyn Eval>,
@@ -56,6 +56,7 @@ impl Model for RandomBaboModel {
 }
 
 impl NegamaxModel {
+    #[tracing::instrument(skip(self, board), ret)]
     fn negamax(&self, board: &Board, mv: Move, d: u32) -> f32 {
         if d == 0 {
             let eval = self.eval.eval(board, mv, board.turn());
@@ -68,7 +69,7 @@ impl NegamaxModel {
             return eval;
         }
 
-        let mut max = f32::NEG_INFINITY;
+        let mut max = core::f32::NEG_INFINITY;
 
         for mv in possible {
             let stone = board.turn().next().to_stone();
@@ -92,7 +93,7 @@ impl Model for NegamaxModel {
 
         for mv in self.prune.possible(board, mv) {
             let stone = board.turn().next().to_stone();
-            // println!("{:?}, {:?}", mv, stone);
+            // tracing::debug!("{:?}, {:?}", mv, stone);
             let next_board = board.with_move(mv, stone).unwrap();   // possible_moves guarantee not None
 
             let eval = -self.negamax(&next_board, mv, self.depth - 1);

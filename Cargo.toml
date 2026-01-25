@@ -6,3 +6,13 @@ edition = "2024"
 [dependencies]
 eframe = { version = "0.33.3", default-features = true }
 rand = "0.8.5"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["std", "env-filter"] }
+
+[profile.dev]
+opt-level = 0
+debug = 1
+incremental = true
+
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=/lld"]
