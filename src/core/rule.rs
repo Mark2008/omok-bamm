@@ -14,7 +14,7 @@ pub trait Rule: Debug + Send + Sync {
 
         let winning = self.is_winning(board, mv, player);
         if winning {
-            return CheckResult::Win(player)
+            return CheckResult::Win;
         }
 
         // todo: check draw
@@ -36,7 +36,7 @@ pub trait Rule: Debug + Send + Sync {
                 board.put_unchecked(mv, player.to_stone());
                 Ok(match result {
                     CheckResult::LooksGood => PutOutcome::Continue,
-                    CheckResult::Win(p) => PutOutcome::Win(p),
+                    CheckResult::Win => PutOutcome::Win,
                     CheckResult::Draw => PutOutcome::Draw,
                     _ => unreachable!()
                 })
@@ -47,7 +47,7 @@ pub trait Rule: Debug + Send + Sync {
 
 pub enum PutOutcome {
     Continue,
-    Win(Player),
+    Win,
     Draw,
 }
 
@@ -58,7 +58,7 @@ pub enum PutError {
 pub enum CheckResult {
     LooksGood,
     Invalid,
-    Win(Player),
+    Win,
     Draw
 }
 
@@ -136,13 +136,7 @@ impl OmokRule {
             else if open1 ^ open2 { OpenType::HalfOpen }
             else { OpenType::Closed };
         
-        let item = board.get(mv);
-        if item == stone {
-            (cnt1 + cnt2 + 1, open_type)
-        }
-        else {
-            (0, open_type)
-        }
+        (cnt1 + cnt2 + 1, open_type)
     }
 }
 

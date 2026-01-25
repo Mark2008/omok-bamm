@@ -155,8 +155,8 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                                 });
                             }
                         },
-                        Ok(rule::PutOutcome::Win(p)) => {
-                            tracing::debug!("{:?} wins!", p);
+                        Ok(rule::PutOutcome::Win) => {
+                            tracing::debug!("someone wins!");
                             data.game_status = GameStatus::Ended;
                         },
                         Ok(rule::PutOutcome::Draw) => {
@@ -180,8 +180,8 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                             tracing::debug!("successfully put {:?}", mv);
                             *bot_context = None;
                         },
-                        Ok(rule::PutOutcome::Win(p)) => {
-                            tracing::debug!("{:?} wins!", p);
+                        Ok(rule::PutOutcome::Win) => {
+                            tracing::debug!("someone wins!");
                             data.game_status = GameStatus::Ended;
                         },
                         Ok(rule::PutOutcome::Draw) => {

@@ -1,6 +1,6 @@
 use rand::Rng;
 use crate::core::board::{Board, Move, Stone};
-use crate::core::rule::{Rule};
+use crate::core::rule::{PutOutcome, Rule};
 use super::eval::Eval;
 use super::prune::Prune;
 
@@ -58,43 +58,44 @@ impl Model for RandomBaboModel {
 }
 
 impl NegamaxModel {
-    // #[tracing::instrument(skip(self, board), ret)]
+    #[tracing::instrument(skip(self, board), ret)]
     fn negamax(&self, board: &Board, mv: Move, d: u32) -> f32 {
         if d == 0 {
             // terminal node
-            let eval = self.eval.eval(board, mv, board.turn().next());
+            let eval = -self.eval.eval(board, mv, board.turn().next());
             return eval;
         }
         let possible = self.prune.possible(board, mv);
 
-        if possible.is_empty() {
-            // terminal node
-            let eval = self.eval.eval(board, mv, board.turn().next());
-            return eval;
-        }
-        let winning_self = self.rule.is_winning(board, mv, board.turn());
-        if winning_self {
-            return -10000.0;
-        }
-        let winning_opponent = self.rule.is_winning(board, mv, board.turn().next());
-        if winning_opponent {
-            return 10000.0;
-        }
+        // if possible.is_empty() {
+        //     // terminal node
+        //     let eval = self.eval.eval(board, mv, board.turn());
+        //     return eval;
+        // }
 
         let mut max = core::f32::NEG_INFINITY;
 
         for mv in possible {
-            let stone = board.turn().next().to_stone();
-            let temp_board = board.with_move(mv, stone).unwrap();   // trust self.possible_moves
-            
-            let eval = -self.negamax(&temp_board, mv, d - 1);
-            
-            if max < eval {
-                max = eval;
-            }
+            let eval = self.eval_after_move(board, mv, d);
+            max = max.max(eval);
         }
 
         max
+    }
+
+    // helper function (common logic)
+    fn eval_after_move(&self, board: &Board, mv: Move, d: u32) -> f32 {
+        let mut next_board = board.clone();
+        let result = self.rule.put(&mut next_board, mv, board.turn());
+
+        match result {
+            Ok(PutOutcome::Continue) => {
+                -self.negamax(&next_board, mv, d - 1)
+            },
+            Ok(PutOutcome::Win) => { 100000.0 },
+            Ok(PutOutcome::Draw) => { 0.0 },
+            _ => unreachable!()     // when this occur, fix pruning
+        }
     }
 }
 
@@ -104,11 +105,12 @@ impl Model for NegamaxModel {
         let mut best_mv = None;
 
         for mv in self.prune.possible(board, mv) {
-            let stone = board.turn().next().to_stone();
-            // tracing::debug!("{:?}, {:?}", mv, stone);
-            let next_board = board.with_move(mv, stone).unwrap();   // possible_moves guarantee not None
+            let eval = self.eval_after_move(board, mv, self.depth);
+            // let stone = board.turn().next().to_stone();
+            // // tracing::debug!("{:?}, {:?}", mv, stone);
+            // let next_board = board.with_move(mv, stone).unwrap();   // possible_moves guarantee not None
 
-            let eval = -self.negamax(&next_board, mv, self.depth - 1);
+            // let eval = -self.negamax(&next_board, mv, self.depth - 1);
             if eval > best {
                 best = eval;
                 best_mv = Some(mv);
