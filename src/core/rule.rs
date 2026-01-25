@@ -136,7 +136,13 @@ impl OmokRule {
             else if open1 ^ open2 { OpenType::HalfOpen }
             else { OpenType::Closed };
         
-        (cnt1 + cnt2 + 1, open_type)
+        let item = board.get(mv);
+        if item == stone {
+            (cnt1 + cnt2 + 1, open_type)
+        }
+        else {
+            (0, open_type)
+        }
     }
 }
 
