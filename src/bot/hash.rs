@@ -1,12 +1,12 @@
 use rand::Rng;
 use crate::core::board::{Board, Move, Stone};
 
-struct Zobrist {
+pub struct Zobrist {
     h: [[u64; 3]; 255],
 }
 
 impl Zobrist {
-    fn init(size: usize) -> Self {
+    pub fn init() -> Self {
         let mut rng = rand::thread_rng();
         let mut h = [[0; 3]; 255];
 
@@ -19,7 +19,7 @@ impl Zobrist {
         Self { h }
     }
 
-    fn hash(&self, board: &Board) -> u64 {
+    pub fn hash(&self, board: &Board) -> u64 {
         let mut h = 0;
         for x in 0..15 {
             for y in 0..15 {
@@ -35,7 +35,7 @@ impl Zobrist {
         h
     }
 
-    fn update(&self, hash: u64, mv: Move, stone: Stone) -> u64 {
+    pub fn update(&self, hash: u64, mv: Move, stone: Stone) -> u64 {
         let num = match stone {
             Stone::None => 0,
             Stone::Black => 1,
