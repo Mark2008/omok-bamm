@@ -1,5 +1,5 @@
-use std::fmt::Debug;
 use crate::core::board::{Board, Move, Stone};
+use std::fmt::Debug;
 
 pub trait Prune: Debug + Send + Sync {
     fn possible(&self, board: &Board, mv: Move) -> Vec<Move>;
@@ -27,7 +27,16 @@ impl Prune for NoPrune {
     }
 }
 
-const SHIFT_ARRAY: [(i32, i32); 8] = [(1,1),(1,0),(1,-1),(0,-1),(-1,-1),(-1,0),(-1,1),(0,1)];
+const SHIFT_ARRAY: [(i32, i32); 8] = [
+    (1, 1),
+    (1, 0),
+    (1, -1),
+    (0, -1),
+    (-1, -1),
+    (-1, 0),
+    (-1, 1),
+    (0, 1),
+];
 impl Prune for NeighborPrune {
     fn possible(&self, board: &Board, mv: Move) -> Vec<Move> {
         let _ = mv; // unused

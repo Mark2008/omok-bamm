@@ -1,5 +1,5 @@
-use rand::Rng;
 use crate::core::board::{Board, Move, Stone};
+use rand::Rng;
 
 pub struct Zobrist {
     h: [[u64; 3]; 255],
@@ -23,11 +23,11 @@ impl Zobrist {
         let mut h = 0;
         for x in 0..15 {
             for y in 0..15 {
-                let mv = Move{x, y};
+                let mv = Move { x, y };
                 let num = match board.get(mv) {
                     Stone::None => 0,
                     Stone::Black => 1,
-                    Stone::White => 2
+                    Stone::White => 2,
                 };
                 h ^= self.h[y * 15 + x][num];
             }

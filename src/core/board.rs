@@ -1,12 +1,14 @@
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Stone {
-    None, Black, White,
+    None,
+    Black,
+    White,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Turn {
-    Black, White
+    Black,
+    White,
 }
 
 pub type Player = Turn;
@@ -20,7 +22,8 @@ pub struct Board {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Move {
-    pub x: usize, pub y: usize
+    pub x: usize,
+    pub y: usize,
 }
 
 impl Turn {
@@ -60,7 +63,7 @@ impl Board {
 
     pub fn put(&mut self, mv: Move, stone: Stone) -> bool {
         if self.get(mv) != Stone::None {
-            return false
+            return false;
         }
         self.put_unchecked(mv, stone);
         true
@@ -103,11 +106,9 @@ impl Move {
         if x < 0 || y < 0 || x >= 15 || y >= 15 {
             return None;
         }
-        Some(
-            Self {
-                x: x as usize, 
-                y: y as usize
-            }
-        )
+        Some(Self {
+            x: x as usize,
+            y: y as usize,
+        })
     }
 }

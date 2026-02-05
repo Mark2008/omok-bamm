@@ -1,22 +1,25 @@
-use std::thread::{self, JoinHandle};
-use std::sync::{Arc, mpsc};
-use eframe::egui;
-use crate::core::board;
-use crate::core::rule::{self, Rule};
 use crate::bot::{
     eval,
     model::{self, Model},
     prune,
 };
+use crate::core::board;
+use crate::core::rule::{self, Rule};
+use eframe::egui;
+use std::sync::{mpsc, Arc};
+use std::thread::{self, JoinHandle};
 
 #[derive(PartialEq, Debug, Clone, Copy)] // Added Clone, Copy for later reset example
 enum AppMode {
-    PvpGame, BotGame, About,
+    PvpGame,
+    BotGame,
+    About,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 enum GameStatus {
-    Ongoing, Ended,
+    Ongoing,
+    Ended,
 }
 
 struct GameData {
@@ -57,7 +60,6 @@ impl Default for MyApp {
 // Replace the previous impl eframe::App for MyApp block with this enhanced version
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-
         // --- Top Panel for Mode Switching (Example) ---
         egui::TopBottomPanel::top("mode_switcher").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -77,11 +79,21 @@ impl eframe::App for MyApp {
             // `match` allows us to render different UI based on the current mode
             match self.current_mode {
                 AppMode::PvpGame => {
-                    omok_template(&mut self.pvp_data, ui, self.current_mode, &mut self.bot_context);
+                    omok_template(
+                        &mut self.pvp_data,
+                        ui,
+                        self.current_mode,
+                        &mut self.bot_context,
+                    );
                 }
 
                 AppMode::BotGame => {
-                    omok_template(&mut self.bot_data, ui, self.current_mode, &mut self.bot_context);
+                    omok_template(
+                        &mut self.bot_data,
+                        ui,
+                        self.current_mode,
+                        &mut self.bot_context,
+                    );
                 }
 
                 AppMode::About => {
@@ -98,32 +110,35 @@ struct BotContext {
     rx: mpsc::Receiver<Option<board::Move>>,
 }
 
-fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, bot_context: &mut Option<BotContext>) {
+fn omok_template(
+    data: &mut GameData,
+    ui: &mut egui::Ui,
+    current_mode: AppMode,
+    bot_context: &mut Option<BotContext>,
+) {
     let mut text = format!("Turn: {:?}", data.board.turn());
     if data.game_status == GameStatus::Ended {
         text = format!("{:?} wins.", data.board.turn().next());
     }
     ui.label(text);
 
-    let (resp, painter) =
-        ui.allocate_painter(egui::Vec2::splat(360.0), egui::Sense::click());
+    let (resp, painter) = ui.allocate_painter(egui::Vec2::splat(360.0), egui::Sense::click());
 
     let rect = resp.rect;
     let cell = rect.width() / 15.0;
 
     // input handling
-    if current_mode == AppMode::PvpGame || (current_mode == AppMode::BotGame && bot_context.is_none()) {
+    if current_mode == AppMode::PvpGame
+        || (current_mode == AppMode::BotGame && bot_context.is_none())
+    {
         if resp.clicked() && data.game_status == GameStatus::Ongoing {
             if let Some(pos) = resp.interact_pointer_pos() {
-                let local = (pos - resp.rect.min)
-                    .clamp(eframe::emath::Vec2::ZERO, rect.size());
+                let local = (pos - resp.rect.min).clamp(eframe::emath::Vec2::ZERO, rect.size());
                 let coord = (local / cell).floor();
 
                 if let Some(mv) = board::Move::new(coord.x as usize, coord.y as usize) {
                     let player = data.board.turn();
-                    let put = data.rule.put(
-                        &mut data.board, mv, player,
-                    );
+                    let put = data.rule.put(&mut data.board, mv, player);
                     match put {
                         Ok(rule::PutOutcome::Continue) => {
                             tracing::debug!("successfully put {:?}", coord);
@@ -134,13 +149,11 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
 
                             if current_mode == AppMode::BotGame {
                                 let (tx, rx) = mpsc::channel();
-                                
+
                                 let handle = thread::spawn(move || {
                                     let model = model::NegamaxModel {
                                         depth: 4,
-                                        eval: Box::new(eval::BaboEval {
-                                            rule: rule
-                                        }),
+                                        eval: Box::new(eval::BaboEval { rule: rule }),
                                         prune: Box::new(prune::NeighborPrune),
                                         rule: Box::new(rule::OmokRule),
                                     };
@@ -151,18 +164,18 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
 
                                 *bot_context = Some(BotContext {
                                     handle: handle,
-                                    rx: rx
+                                    rx: rx,
                                 });
                             }
-                        },
+                        }
                         Ok(rule::PutOutcome::Win) => {
                             tracing::debug!("someone wins!");
                             data.game_status = GameStatus::Ended;
-                        },
+                        }
                         Ok(rule::PutOutcome::Draw) => {
                             tracing::debug!("Draw!");
                             data.game_status = GameStatus::Ended;
-                        },
+                        }
                         Err(rule::PutError::Occupied) => {
                             tracing::debug!("This position is already occupied");
                         }
@@ -170,7 +183,8 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                 }
             }
         }
-    } else {    // when bot running
+    } else {
+        // when bot running
         if let Some(ctx) = bot_context.as_mut() {
             if let Ok(received) = ctx.rx.try_recv() {
                 if let Some(mv) = received {
@@ -179,15 +193,15 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                         Ok(rule::PutOutcome::Continue) => {
                             tracing::debug!("successfully put {:?}", mv);
                             *bot_context = None;
-                        },
+                        }
                         Ok(rule::PutOutcome::Win) => {
                             tracing::debug!("someone wins!");
                             data.game_status = GameStatus::Ended;
-                        },
+                        }
                         Ok(rule::PutOutcome::Draw) => {
                             tracing::debug!("Draw!");
                             data.game_status = GameStatus::Ended;
-                        },
+                        }
                         Err(rule::PutError::Occupied) => {
                             tracing::debug!("aaaaaaaaaa This position is already occupied");
                         }
@@ -196,28 +210,20 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                     tracing::debug!("bot resigned!!");
                     data.game_status = GameStatus::Ended;
                 }
-
             }
         }
     }
-    
 
     // drawing grid
     for i in 0..15 {
         let x = rect.left() + cell * (i as f32 + 0.5);
         painter.line_segment(
-            [
-                egui::pos2(x, rect.top()),
-                egui::pos2(x, rect.bottom()),
-            ],
+            [egui::pos2(x, rect.top()), egui::pos2(x, rect.bottom())],
             egui::Stroke::new(1.0, egui::Color32::GRAY),
         );
         let y = rect.top() + cell * (i as f32 + 0.5);
         painter.line_segment(
-            [
-                egui::pos2(rect.left(), y),
-                egui::pos2(rect.right(), y),
-            ], 
+            [egui::pos2(rect.left(), y), egui::pos2(rect.right(), y)],
             egui::Stroke::new(1.0, egui::Color32::GRAY),
         );
     }
@@ -236,7 +242,12 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                     board::Stone::None => unreachable!(),
                 };
                 let center = egui::Pos2::new(x, y);
-                painter.circle(center, 10.0, fill_color, egui::Stroke::new(2.0, egui::Color32::DARK_GRAY));
+                painter.circle(
+                    center,
+                    10.0,
+                    fill_color,
+                    egui::Stroke::new(2.0, egui::Color32::DARK_GRAY),
+                );
                 // painter.circle_filled(center, 8.0, fill_color);
             }
         }

@@ -4,14 +4,16 @@ use crate::core::board::Move;
 pub struct TTEntry {
     pub hash: u64,
     pub value: f32,
-    pub depth: u32, 
+    pub depth: u32,
     pub flag: Flag,
     pub best_move: Move,
 }
 
 #[derive(Copy, Clone)]
 pub enum Flag {
-    Lower, Exact, Upper
+    Lower,
+    Exact,
+    Upper,
 }
 
 pub struct TT {
@@ -30,14 +32,14 @@ impl TT {
         let idx = hash as usize & self.table.len();
         match self.table[idx] {
             Some(e) if e.hash == hash => Some(e),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn put(&mut self, e: TTEntry) {
         let idx = e.hash as usize & self.table.len();
         match self.table[idx] {
-            Some(old) if old.hash == e.hash && old.depth > e.depth => {},
+            Some(old) if old.hash == e.hash && old.depth > e.depth => {}
             _ => self.table[idx] = Some(e),
         }
     }

@@ -1,9 +1,9 @@
-use std::fmt::Debug;
-use std::sync::Arc;
 use crate::core::{
-    board::{Board, Player, Move},
+    board::{Board, Move, Player},
     rule::Rule,
 };
+use std::fmt::Debug;
+use std::sync::Arc;
 
 pub trait Eval: Debug + Send + Sync {
     fn eval(&self, board: &Board, mv: Move, player: Player) -> f32;

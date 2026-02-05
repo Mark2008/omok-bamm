@@ -1,11 +1,11 @@
+use super::board::{Board, Move, Player, Stone};
 use std::fmt::Debug;
-use super::board::{Board, Stone, Move, Player};
 
 pub trait Rule: Debug + Send + Sync {
     fn is_valid(&self, board: &Board, mv: Move, player: Player) -> bool;
 
     fn is_winning(&self, board: &Board, mv: Move, player: Player) -> bool;
-    
+
     fn check(&self, board: &Board, mv: Move, player: Player) -> CheckResult {
         let valid: bool = self.is_valid(board, mv, player);
         if !valid {
@@ -22,9 +22,7 @@ pub trait Rule: Debug + Send + Sync {
         CheckResult::LooksGood
     }
 
-    fn put(
-        &self, board: &mut Board, mv: Move, player: Player
-    ) -> Result<PutOutcome, PutError> {
+    fn put(&self, board: &mut Board, mv: Move, player: Player) -> Result<PutOutcome, PutError> {
         if board.get(mv) != Stone::None {
             return Err(PutError::Occupied);
         }
@@ -38,7 +36,7 @@ pub trait Rule: Debug + Send + Sync {
                     CheckResult::LooksGood => PutOutcome::Continue,
                     CheckResult::Win => PutOutcome::Win,
                     CheckResult::Draw => PutOutcome::Draw,
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 })
             }
         }
@@ -52,23 +50,28 @@ pub enum PutOutcome {
 }
 
 pub enum PutError {
-    Occupied
+    Occupied,
 }
 
 pub enum CheckResult {
     LooksGood,
     Invalid,
     Win,
-    Draw
+    Draw,
 }
 
 const DIRECTION: [Direction; 4] = [
-    Direction::Horizontal, Direction::Vertical, 
-    Direction::DiagDown, Direction::DiagUp,
+    Direction::Horizontal,
+    Direction::Vertical,
+    Direction::DiagDown,
+    Direction::DiagUp,
 ];
 
 enum Direction {
-    Horizontal, Vertical, DiagDown, DiagUp,
+    Horizontal,
+    Vertical,
+    DiagDown,
+    DiagUp,
 }
 
 impl Direction {
@@ -84,7 +87,9 @@ impl Direction {
 
 #[derive(PartialEq)]
 enum OpenType {
-    Open, HalfOpen, Closed
+    Open,
+    HalfOpen,
+    Closed,
 }
 
 /// (Omok Rule)
@@ -94,9 +99,13 @@ enum OpenType {
 pub struct OmokRule;
 
 impl OmokRule {
-    fn count_one_side(  // helper function
-        board: &Board, mv: Move, stone: Stone,
-        dx: i32, dy: i32
+    fn count_one_side(
+        // helper function
+        board: &Board,
+        mv: Move,
+        stone: Stone,
+        dx: i32,
+        dy: i32,
     ) -> (u32, bool) {
         let mut point = mv.clone();
         let mut cnt = 0;
@@ -105,7 +114,7 @@ impl OmokRule {
             let shifted = point.shift(dx, dy);
             match shifted {
                 Some(mv) => point = mv,
-                None => break   // breaks when out of board
+                None => break, // breaks when out of board
             }
             let item = board.get(point);
             match item {
@@ -122,20 +131,20 @@ impl OmokRule {
         (cnt, open)
     }
 
-    fn line_count(
-        board: &Board, mv: Move, player: Player, 
-        dx: i32, dy: i32
-    ) -> (u32, OpenType) {
+    fn line_count(board: &Board, mv: Move, player: Player, dx: i32, dy: i32) -> (u32, OpenType) {
         let stone = player.to_stone();
 
         let (cnt1, open1) = Self::count_one_side(board, mv, stone, dx, dy);
         let (cnt2, open2) = Self::count_one_side(board, mv, stone, -dx, -dy);
-        
-        let open_type =
-            if open1 && open2 { OpenType::Open }
-            else if open1 ^ open2 { OpenType::HalfOpen }
-            else { OpenType::Closed };
-        
+
+        let open_type = if open1 && open2 {
+            OpenType::Open
+        } else if open1 ^ open2 {
+            OpenType::HalfOpen
+        } else {
+            OpenType::Closed
+        };
+
         (cnt1 + cnt2 + 1, open_type)
     }
 }
@@ -149,8 +158,7 @@ impl Rule for OmokRule {
             if cnt == 3 && open == OpenType::Open {
                 if !already_sam {
                     already_sam = true;
-                }
-                else {
+                } else {
                     return false;
                 }
             }

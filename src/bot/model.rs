@@ -1,8 +1,8 @@
-use rand::Rng;
-use crate::core::board::{Board, Move, Stone};
-use crate::core::rule::{PutOutcome, Rule};
 use super::eval::Eval;
 use super::prune::Prune;
+use crate::core::board::{Board, Move, Stone};
+use crate::core::rule::{PutOutcome, Rule};
+use rand::Rng;
 
 pub trait Model: Send + Sync {
     /// if None, the bot resigns (?)
@@ -21,7 +21,7 @@ pub struct NegamaxModel {
 }
 
 impl Model for RandomBaboModel {
-    fn next_move(&self, board: &Board, mv: Move) -> Option<Move> {        
+    fn next_move(&self, board: &Board, mv: Move) -> Option<Move> {
         let dir = rand::thread_rng().gen_range(0..8) as usize;
         for i in 0..8 {
             let shifted = match (dir + i) % 8 {
@@ -33,7 +33,7 @@ impl Model for RandomBaboModel {
                 5 => mv.shift(-1, 0),
                 6 => mv.shift(-1, 1),
                 7 => mv.shift(0, 1),
-                _ => unreachable!()
+                _ => unreachable!(),
             };
             if let Some(mv) = shifted {
                 if board.get(mv) == Stone::None {
@@ -49,7 +49,6 @@ impl Model for RandomBaboModel {
             let mv = Move::new(rand_x, rand_y).unwrap();
             if board.get(mv) == Stone::None {
                 return Some(Move::new(rand_x, rand_y).unwrap());
-
             }
         }
 
@@ -89,12 +88,10 @@ impl NegamaxModel {
         let result = self.rule.put(&mut next_board, mv, board.turn());
 
         match result {
-            Ok(PutOutcome::Continue) => {
-                -self.negamax(&next_board, mv, d - 1)
-            },
-            Ok(PutOutcome::Win) => { 100000.0 },
-            Ok(PutOutcome::Draw) => { 0.0 },
-            _ => unreachable!()     // when this occur, fix pruning
+            Ok(PutOutcome::Continue) => -self.negamax(&next_board, mv, d - 1),
+            Ok(PutOutcome::Win) => 100000.0,
+            Ok(PutOutcome::Draw) => 0.0,
+            _ => unreachable!(), // when this occur, fix pruning
         }
     }
 }
