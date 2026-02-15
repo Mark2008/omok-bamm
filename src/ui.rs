@@ -165,6 +165,9 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                         },
                         Err(rule::PutError::Occupied) => {
                             tracing::debug!("This position is already occupied");
+                        },
+                        Err(rule::PutError::Invalid) => {
+                            tracing::debug!("This position is invalid");
                         }
                     }
                 }
@@ -190,6 +193,9 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                         },
                         Err(rule::PutError::Occupied) => {
                             tracing::debug!("aaaaaaaaaa This position is already occupied");
+                        },
+                        Err(rule::PutError::Invalid) => {
+                            tracing::debug!("aaaaaaaaaa This position is invalid");
                         }
                     }
                 } else {

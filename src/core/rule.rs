@@ -31,7 +31,7 @@ pub trait Rule: Debug + Send + Sync {
 
         let check = self.check(board, mv, player);
         match check {
-            CheckResult::Invalid => Err(PutError::Occupied),
+            CheckResult::Invalid => Err(PutError::Invalid),
             result => {
                 board.put_unchecked(mv, player.to_stone());
                 Ok(match result {
@@ -45,14 +45,17 @@ pub trait Rule: Debug + Send + Sync {
     }
 }
 
+#[derive(Debug)]
 pub enum PutOutcome {
     Continue,
     Win,
     Draw,
 }
 
+#[derive(Debug)]
 pub enum PutError {
-    Occupied
+    Occupied,
+    Invalid,
 }
 
 pub enum CheckResult {

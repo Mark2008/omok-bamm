@@ -58,7 +58,7 @@ impl Model for RandomBaboModel {
 }
 
 impl NegamaxModel {
-    #[tracing::instrument(skip(self, board), ret)]
+    // #[tracing::instrument(skip(self, board), ret)]
     fn negamax(&self, board: &Board, mv: Move, d: u32) -> f32 {
         if d == 0 {
             // terminal node
@@ -94,7 +94,11 @@ impl NegamaxModel {
             },
             Ok(PutOutcome::Win) => { 100000.0 },
             Ok(PutOutcome::Draw) => { 0.0 },
-            _ => unreachable!()     // when this occur, fix pruning
+            Err(error_type) => {
+                tracing::debug!("{:?}", error_type);
+                // invalid moves (e.g., forbidden like 3-3) are treated as worst possible
+                core::f32::NEG_INFINITY
+            }
         }
     }
 }
@@ -104,7 +108,8 @@ impl Model for NegamaxModel {
         let mut best = f32::NEG_INFINITY;
         let mut best_mv = None;
 
-        for mv in self.prune.possible(board, mv) {
+        let possible = self.prune.possible(board, mv);
+        for mv in possible {
             let eval = self.eval_after_move(board, mv, self.depth);
             // let stone = board.turn().next().to_stone();
             // // tracing::debug!("{:?}, {:?}", mv, stone);

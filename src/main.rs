@@ -1,13 +1,14 @@
 pub mod bot;
 pub mod core;
 pub mod ui;
+pub mod test;
 
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::fmt;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
 
-fn init_trace() {
+pub fn init_trace() {
     let file = std::fs::File::create("trace.log").unwrap();
 
     let filter = EnvFilter::new(
