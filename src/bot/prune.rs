@@ -62,6 +62,22 @@ impl Prune for NeighborPrune {
                 }
             }
         }
+
+        // heuristic: consider distance from last put position and center
+        v.sort_by_key(|item| {
+            let dist_last = chebyshev_dist(mv, *item);
+            let dist_center = chebyshev_dist(Move { x: 7, y: 7}, *item);
+            dist_last * 4 + dist_center
+        });
+
         v
     }
+}
+
+
+// utils
+fn chebyshev_dist(mv1: Move, mv2: Move) -> usize {
+    let dx = mv1.x.abs_diff(mv2.x);
+    let dy = mv1.y.abs_diff(mv2.y);
+    dx.max(dy)
 }
