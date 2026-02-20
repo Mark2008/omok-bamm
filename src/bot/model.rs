@@ -66,41 +66,58 @@ impl<E: Eval, P: Prune, R: Rule> NegamaxModel<E, P, R> {
             rule,
         }
     }
-    // #[tracing::instrument(skip(self, board), ret)]
-    fn negamax(&self, board: &mut Board, mv: Move, d: u32) -> f32 {
-        if d == 0 {
-            // terminal node
-            let eval = -self.eval.eval(&board, mv, board.turn().next());
-            return eval;
-        }
-        let possible = self.prune.possible(&board, mv);
 
+    fn negamax(
+        &self, 
+        board: &mut Board, 
+        d: u32,
+        alpha: f32,
+        beta: f32,
+        mv: Move, 
+    ) -> f32 {
+        if d == 0 {
+            return -self.eval.eval(&board, mv, board.turn().next());
+        }
+
+        let possible = self.prune.possible(&board, mv);
         if possible.is_empty() {
             // terminal node
-            let eval = -self.eval.eval(&board, mv, board.turn().next());
-            return eval;
+            return -self.eval.eval(&board, mv, board.turn().next());
         }
 
         let mut max = core::f32::NEG_INFINITY;
-
+        let mut alpha = alpha;
         for mv in possible {
-            let eval = self.eval_after_move(board, mv, d);
+            let eval = self.eval_after_move(board, d, alpha, beta, mv);
             max = max.max(eval);
+            alpha = alpha.max(eval);
+            if alpha >= beta {
+                break;
+            }
         }
 
         max
     }
 
     // helper function (common logic)
-    fn eval_after_move(&self, board: &mut Board, mv: Move, d: u32) -> f32 {
+    fn eval_after_move(
+        &self, 
+        board: &mut Board, 
+        d: u32,
+        alpha: f32,
+        beta: f32,
+        mv: Move, 
+    ) -> f32 {
         let turn = board.turn();
         let result = self.rule.put(board, mv, turn);
 
         match result {
             Ok(outcome) => {
                 let value = match outcome {
-                    PutOutcome::Continue => -self.negamax(board, mv, d - 1),
-                    PutOutcome::Win => 100000.0,
+                    PutOutcome::Continue => -self.negamax(
+                        board, d - 1, -beta, -alpha, mv
+                    ),
+                    PutOutcome::Win => 100000.0 - d as f32,
                     PutOutcome::Draw => 0.0,
                 };
 
@@ -128,7 +145,10 @@ impl<E: Eval, P: Prune, R: Rule> Model for NegamaxModel<E, P, R> {
 
         let possible = self.prune.possible(board, mv);
         for mv in possible {
-            let eval = self.eval_after_move(&mut clone_board, mv, self.depth);
+            let eval = self.eval_after_move(
+                &mut clone_board, self.depth, 
+                core::f32::NEG_INFINITY, core::f32::INFINITY, mv,
+            );
             
             if eval > best {
                 best = eval;
