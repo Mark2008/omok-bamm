@@ -58,26 +58,19 @@ impl Board {
         self.v[mv.y][mv.x] = stone;
     }
 
+    pub fn undo_unchecked(&mut self, mv: Move) {
+        // next is previous because there's only black or white turn
+        self.turn = self.turn.next();
+        self.ply -= 1;
+        self.v[mv.y][mv.x] = Stone::None;
+    }
+
     pub fn put(&mut self, mv: Move, stone: Stone) -> bool {
         if self.get(mv) != Stone::None {
             return false
         }
         self.put_unchecked(mv, stone);
         true
-    }
-
-    pub(super) fn with_move_unchecked(&self, mv: Move, stone: Stone) -> Self {
-        let mut new = self.clone();
-        new.put_unchecked(mv, stone);
-        new
-    }
-
-    pub fn with_move(&self, mv: Move, stone: Stone) -> Option<Self> {
-        let mut new = self.clone();
-        if new.put(mv, stone) {
-            return Some(new);
-        }
-        None
     }
 
     pub fn turn(&self) -> Turn {

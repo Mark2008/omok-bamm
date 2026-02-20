@@ -67,17 +67,17 @@ impl<E: Eval, P: Prune, R: Rule> NegamaxModel<E, P, R> {
         }
     }
     // #[tracing::instrument(skip(self, board), ret)]
-    fn negamax(&self, board: &Board, mv: Move, d: u32) -> f32 {
+    fn negamax(&self, board: &mut Board, mv: Move, d: u32) -> f32 {
         if d == 0 {
             // terminal node
-            let eval = -self.eval.eval(board, mv, board.turn().next());
+            let eval = -self.eval.eval(&board, mv, board.turn().next());
             return eval;
         }
-        let possible = self.prune.possible(board, mv);
+        let possible = self.prune.possible(&board, mv);
 
         if possible.is_empty() {
             // terminal node
-            let eval = -self.eval.eval(board, mv, board.turn().next());
+            let eval = -self.eval.eval(&board, mv, board.turn().next());
             return eval;
         }
 
@@ -92,16 +92,23 @@ impl<E: Eval, P: Prune, R: Rule> NegamaxModel<E, P, R> {
     }
 
     // helper function (common logic)
-    fn eval_after_move(&self, board: &Board, mv: Move, d: u32) -> f32 {
-        let mut next_board = board.clone();
-        let result = self.rule.put(&mut next_board, mv, board.turn());
+    fn eval_after_move(&self, board: &mut Board, mv: Move, d: u32) -> f32 {
+        let turn = board.turn();
+        let result = self.rule.put(board, mv, turn);
 
         match result {
-            Ok(PutOutcome::Continue) => {
-                -self.negamax(&next_board, mv, d - 1)
+            Ok(outcome) => {
+                let value = match outcome {
+                    PutOutcome::Continue => -self.negamax(board, mv, d - 1),
+                    PutOutcome::Win => 100000.0,
+                    PutOutcome::Draw => 0.0,
+                };
+
+                // revert to previous state
+                board.undo_unchecked(mv);
+
+                value
             },
-            Ok(PutOutcome::Win) => { 100000.0 },
-            Ok(PutOutcome::Draw) => { 0.0 },
             Err(error_type) => {
                 tracing::debug!("{:?}", error_type);
                 // invalid moves (e.g., forbidden like 3-3) are treated as worst possible
@@ -116,14 +123,13 @@ impl<E: Eval, P: Prune, R: Rule> Model for NegamaxModel<E, P, R> {
         let mut best = f32::NEG_INFINITY;
         let mut best_mv = None;
 
+        // start point of simulation
+        let mut clone_board = board.clone();
+
         let possible = self.prune.possible(board, mv);
         for mv in possible {
-            let eval = self.eval_after_move(board, mv, self.depth);
-            // let stone = board.turn().next().to_stone();
-            // // tracing::debug!("{:?}, {:?}", mv, stone);
-            // let next_board = board.with_move(mv, stone).unwrap();   // possible_moves guarantee not None
-
-            // let eval = -self.negamax(&next_board, mv, self.depth - 1);
+            let eval = self.eval_after_move(&mut clone_board, mv, self.depth);
+            
             if eval > best {
                 best = eval;
                 best_mv = Some(mv);
