@@ -138,11 +138,9 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                                 let handle = thread::spawn(move || {
                                     let model = model::NegamaxModel {
                                         depth: 4,
-                                        eval: Box::new(eval::BaboEval {
-                                            rule: rule
-                                        }),
-                                        prune: Box::new(prune::NeighborPrune),
-                                        rule: Box::new(rule::OmokRule),
+                                        eval: eval::BaboEval { rule: rule },
+                                        prune: prune::NeighborPrune {},
+                                        rule: rule::OmokRule {},
                                     };
                                     let selection = model.next_move(&new_board, mv);
                                     tx.send(selection).unwrap();

@@ -28,11 +28,9 @@ mod negamax {
 
         let model = model::NegamaxModel {
             depth: 4,
-            eval: Box::new(eval::BaboEval {
-                rule: Arc::new(rule::OmokRule)
-            }),
-            prune: Box::new(prune::NeighborPrune),
-            rule: Box::new(rule::OmokRule),
+            eval: eval::BaboEval { rule: Arc::new(rule::OmokRule) },
+            prune: prune::NeighborPrune,
+            rule: rule::OmokRule,
         };
 
         board.put(Move { x: 7, y: 7 }, Stone::Black);

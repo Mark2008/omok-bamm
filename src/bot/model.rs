@@ -13,11 +13,11 @@ pub trait Model: Send + Sync {
 pub struct RandomBaboModel;
 
 #[derive(Debug)]
-pub struct NegamaxModel {
+pub struct NegamaxModel<E: Eval, P: Prune, R: Rule> {
     pub depth: u32,
-    pub eval: Box<dyn Eval>,
-    pub prune: Box<dyn Prune>,
-    pub rule: Box<dyn Rule>,
+    pub eval: E,
+    pub prune: P,
+    pub rule: R,
 }
 
 impl Model for RandomBaboModel {
@@ -57,7 +57,15 @@ impl Model for RandomBaboModel {
     }
 }
 
-impl NegamaxModel {
+impl<E: Eval, P: Prune, R: Rule> NegamaxModel<E, P, R> {
+    pub fn new(depth: u32, eval: E, prune: P, rule: R) -> Self {
+        Self {
+            depth,
+            eval,
+            prune,
+            rule,
+        }
+    }
     // #[tracing::instrument(skip(self, board), ret)]
     fn negamax(&self, board: &Board, mv: Move, d: u32) -> f32 {
         if d == 0 {
@@ -103,7 +111,7 @@ impl NegamaxModel {
     }
 }
 
-impl Model for NegamaxModel {
+impl<E: Eval, P: Prune, R: Rule> Model for NegamaxModel<E, P, R> {
     fn next_move(&self, board: &Board, mv: Move) -> Option<Move> {
         let mut best = f32::NEG_INFINITY;
         let mut best_mv = None;
