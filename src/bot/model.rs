@@ -75,11 +75,11 @@ impl<E: Eval, P: Prune, R: Rule> NegamaxModel<E, P, R> {
         }
         let possible = self.prune.possible(board, mv);
 
-        // if possible.is_empty() {
-        //     // terminal node
-        //     let eval = self.eval.eval(board, mv, board.turn());
-        //     return eval;
-        // }
+        if possible.is_empty() {
+            // terminal node
+            let eval = -self.eval.eval(board, mv, board.turn().next());
+            return eval;
+        }
 
         let mut max = core::f32::NEG_INFINITY;
 
