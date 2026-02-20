@@ -1,4 +1,4 @@
-use std::thread::{self, JoinHandle};
+use std::thread;
 use std::sync::{Arc, mpsc};
 use eframe::egui;
 use crate::core::board;
@@ -94,7 +94,6 @@ impl eframe::App for MyApp {
 }
 
 struct BotContext {
-    handle: JoinHandle<()>,
     rx: mpsc::Receiver<Option<board::Move>>,
 }
 
@@ -135,7 +134,7 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                             if current_mode == AppMode::BotGame {
                                 let (tx, rx) = mpsc::channel();
                                 
-                                let handle = thread::spawn(move || {
+                                let _ = thread::spawn(move || {
                                     let model = model::NegamaxModel {
                                         depth: 4,
                                         eval: eval::BaboEval { rule: rule },
@@ -148,7 +147,6 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                                 // might be end of the spagetti
 
                                 *bot_context = Some(BotContext {
-                                    handle: handle,
                                     rx: rx
                                 });
                             }
