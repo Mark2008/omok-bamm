@@ -67,7 +67,7 @@ impl Prune for NeighborPrune {
         v.sort_by_key(|item| {
             let dist_last = chebyshev_dist(mv, *item);
             let dist_center = chebyshev_dist(Move { x: 7, y: 7}, *item);
-            dist_last * 4 + dist_center
+            dist_last * 10 + dist_center
         });
 
         v

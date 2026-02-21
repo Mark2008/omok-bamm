@@ -136,7 +136,7 @@ fn omok_template(data: &mut GameData, ui: &mut egui::Ui, current_mode: AppMode, 
                                 
                                 let _ = thread::spawn(move || {
                                     let model = model::NegamaxModel {
-                                        depth: 4,
+                                        depth: 5,
                                         eval: eval::BaboEval { rule: rule },
                                         prune: prune::NeighborPrune {},
                                         rule: rule::OmokRule {},

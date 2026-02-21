@@ -117,7 +117,7 @@ impl<E: Eval, P: Prune, R: Rule> NegamaxModel<E, P, R> {
                     PutOutcome::Continue => -self.negamax(
                         board, d - 1, -beta, -alpha, mv
                     ),
-                    PutOutcome::Win => 100000.0 - d as f32,
+                    PutOutcome::Win => 100000.0 + d as f32,
                     PutOutcome::Draw => 0.0,
                 };
 
