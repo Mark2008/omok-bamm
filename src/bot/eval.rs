@@ -1,12 +1,12 @@
 use std::fmt::Debug;
 use std::sync::Arc;
 use crate::core::{
-    board::{Board, Player, Move},
+    board::{Board, Move},
     rule::Rule,
 };
 
 pub trait Eval: Debug + Send + Sync {
-    fn eval(&self, board: &Board, mv: Move, player: Player) -> f32;
+    fn eval(&self, board: &Board, mv: Move) -> f32;
 }
 
 #[derive(Debug)]
@@ -15,7 +15,8 @@ pub struct BaboEval {
 }
 
 impl Eval for BaboEval {
-    fn eval(&self, board: &Board, mv: Move, player: Player) -> f32 {
+    fn eval(&self, board: &Board, mv: Move) -> f32 {
+        let player = board.turn();
         let winning_player = self.rule.is_winning(board, mv, player);
         if winning_player {
             return 1000.0;
