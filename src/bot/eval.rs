@@ -14,10 +14,12 @@ pub struct BaboEval {
     pub rule: Arc<dyn Rule>,
 }
 
+
+// todo: remove rule field
 /// slow but solid evaluation
 #[derive(Debug)]
-pub struct PatternEval {
-    pub rule: Arc<dyn Rule>,
+pub struct PatternEval<R: Rule> {
+    pub rule: R,
 }
 
 impl Eval for BaboEval {
@@ -189,7 +191,7 @@ fn multiply_weight_value(open: [u8; 5], half: [u8; 5], five: u8) -> f32 {
     + five as f32 * FIVE
 }
 
-impl Eval for PatternEval {
+impl<R: Rule> Eval for PatternEval<R> {
     fn eval(&self, board: &Board, _mv: Move) -> f32 {
         let pattern_count = pattern_count(board);
 

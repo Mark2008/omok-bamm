@@ -23,7 +23,11 @@ impl Prune for NoPrune {
                 }
             }
         }
-        v
+        if v.is_empty() {
+            vec![Move { x: 7, y: 7 }]
+        } else {
+            v
+        }
     }
 }
 
@@ -70,7 +74,13 @@ impl Prune for NeighborPrune {
             dist_last * 10 + dist_center
         });
 
-        v
+        // if there's nowhere to put (assuming blank board)
+        // or full-filled board can be the case
+        if v.is_empty() {
+            vec![Move { x: 7, y: 7 }]
+        } else {
+            v
+        }
     }
 }
 
