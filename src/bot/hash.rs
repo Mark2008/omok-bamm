@@ -1,6 +1,7 @@
 use rand::Rng;
 use crate::core::board::{Board, Move, Stone};
 
+#[derive(Debug)]
 pub struct Zobrist {
     h: [[u64; 3]; 255],
 }

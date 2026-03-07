@@ -9,36 +9,12 @@ pub trait Eval: Debug + Send + Sync {
     fn eval(&self, board: &Board, mv: Move) -> f32;
 }
 
-#[derive(Debug)]
-pub struct BaboEval {
-    pub rule: Arc<dyn Rule>,
-}
-
-
 // todo: remove rule field
 /// slow but solid evaluation
 #[derive(Debug)]
 pub struct PatternEval<R: Rule> {
     pub rule: R,
 }
-
-impl Eval for BaboEval {
-    fn eval(&self, board: &Board, mv: Move) -> f32 {
-        let player = board.turn();
-        let winning_player = self.rule.is_winning(board, mv, player);
-        if winning_player {
-            return 1000.0;
-        }
-
-        let winning_opponent = self.rule.is_winning(board, mv, player.next());
-        if winning_opponent {
-            return -1000.0;
-        }
-
-        0.0
-    }
-}
-
 
 struct PatternCount {
     open_cnt_black: [u8; 5],

@@ -1,4 +1,4 @@
-use std::sync::{Arc, mpsc, RwLock};
+use std::sync::{Arc, mpsc, RwLock, Mutex};
 use std::thread;
 use std::time::Duration;
 use eframe::egui;
@@ -39,31 +39,31 @@ impl Default for MyApp {
                 bot: GameData::new(
                     HumanPlayer { input_manager: Arc::clone(&input_manager) }, 
                     BotPlayer::new(
-                        model::NegamaxModel {
-                            depth: 5,
-                            eval: eval::PatternEval { rule: rule.clone() },
-                            prune: prune::NeighborPrune,
-                            rule: rule.clone(),
-                        }
+                        model::NegamaxModel::new(
+                            5,
+                            eval::PatternEval { rule: rule.clone() },
+                            prune::NeighborPrune,
+                            rule.clone()
+                        )
                     ),
                     rule.clone(),
                 ),
                 twobot: GameData::new(
                     BotPlayer::new(
-                        model::NegamaxModel {
-                            depth: 5,
-                            eval: eval::PatternEval { rule: rule.clone() },
-                            prune: prune::NeighborPrune,
-                            rule: rule.clone(),
-                        }
+                        model::NegamaxModel::new(
+                            5,
+                            eval::PatternEval { rule: rule.clone() },
+                            prune::NeighborPrune,
+                            rule.clone()
+                        )
                     ),
                     BotPlayer::new(
-                        model::NegamaxModel {
-                            depth: 5,
-                            eval: eval::PatternEval { rule: rule.clone() },
-                            prune: prune::NeighborPrune,
-                            rule: rule.clone(),
-                        }
+                        model::NegamaxModel::new(
+                            5,
+                            eval::PatternEval { rule: rule.clone() },
+                            prune::NeighborPrune,
+                            rule.clone()
+                        )
                     ),
                     rule.clone(),
                 )
@@ -113,7 +113,7 @@ struct HumanPlayer {
 }
 
 struct BotPlayer {
-    model: Arc<dyn Model + Send>,
+    model: Arc<Mutex<dyn Model + Send>>,
     rx: Option<mpsc::Receiver<Option<Move>>>,
 }
 
@@ -123,7 +123,7 @@ impl BotPlayer {
         M: Model + Send + 'static
     {
         Self {
-            model: Arc::new(model),
+            model: Arc::new(Mutex::new(model)),
             rx: None,
         }
     }
@@ -140,6 +140,7 @@ impl GamePlayer for BotPlayer {
 
         
         let _ = thread::spawn(move || {
+            let mut model = model.lock().unwrap();
             let mv = model.next_move(&board, last_mv);
 
             // todo sdasdfsdfsdfsfd
